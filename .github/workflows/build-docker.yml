@@ -1,0 +1,23 @@
+name: Mirror Docker Images
+
+on:
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Docker Hub credentials
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Install skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      - name: Mirror minio/minio:RELEASE.2025-04-22T22-12-26Z
+        run: |
+          skopeo copy \
+            docker://minio/minio:RELEASE.2025-04-22T22-12-26Z \
+            docker://qyg2297248353/minio:RELEASE.2025-04-22T22-12-26Z
