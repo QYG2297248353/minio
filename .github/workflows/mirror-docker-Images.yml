@@ -1,0 +1,44 @@
+name: Mirror Docker Images
+
+on:
+  workflow_dispatch:
+
+env:
+  VERSION: RELEASE.2025-04-22T22-12-26Z
+  SOURCE_NAMESPACE: minio
+  TARGET_NAMESPACE: qyg2297248353
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Install Skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      - name: Mirror images
+        run: |
+          # 镜像列表（镜像名 + 可选 tag 后缀）
+          images=(
+            "minio"
+          )
+
+          for image in "${images[@]}"; do
+            # 提取镜像名和标签（如果没有标签，默认用 VERSION）
+            name="${image%%:*}"
+            tag="${image##*:}"
+            [[ "$image" != *:* ]] && tag="${VERSION}"
+
+            # 构造完整路径
+            src="${SOURCE_NAMESPACE}/${name}:${tag}"
+            dst="${TARGET_NAMESPACE}/${name}:${tag}"
+
+            echo "🔄 正在同步镜像: $src → $dst"
+            skopeo copy "docker://$src" "docker://$dst"
+            echo "✅ 同步完成: $dst"
+          done
